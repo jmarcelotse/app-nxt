@@ -1,0 +1,144 @@
+apiVersion: scaffolder.backstage.io/v1beta3
+kind: Template
+metadata:
+  name: aws-ecs-spot
+  title: AWS ECS Fargate Spot
+  description: Cria um serviço ECS Fargate com Spot instances usando Terraform
+  tags:
+    - aws
+    - ecs
+    - fargate
+    - spot
+    - terraform
+spec:
+  owner: team-platform
+  type: service
+
+  parameters:
+    - title: Configuração do Serviço
+      required:
+        - name
+        - description
+        - owner
+        - region
+      properties:
+        name:
+          title: Nome do serviço
+          type: string
+          description: Nome do serviço ECS (ex. my-api)
+          pattern: '^[a-z0-9-]+$'
+          ui:autofocus: true
+        description:
+          title: Descrição
+          type: string
+        owner:
+          title: Owner
+          type: string
+          ui:field: OwnerPicker
+          ui:options:
+            catalogFilter:
+              kind: Group
+        region:
+          title: Região AWS
+          type: string
+          default: us-east-1
+          enum:
+            - us-east-1
+            - us-east-2
+            - us-west-2
+            - sa-east-1
+          enumNames:
+            - US East (N. Virginia)
+            - US East (Ohio)
+            - US West (Oregon)
+            - South America (São Paulo)
+
+    - title: Configuração do Container
+      required:
+        - containerImage
+        - containerPort
+      properties:
+        containerImage:
+          title: Imagem Docker
+          type: string
+          default: nginx:alpine
+          description: Imagem do container (ex. nginx:alpine, my-app:latest)
+        containerPort:
+          title: Porta do container
+          type: number
+          default: 80
+        cpu:
+          title: CPU (units)
+          type: string
+          default: "256"
+          enum: ["256", "512", "1024", "2048"]
+          enumNames: ["0.25 vCPU", "0.5 vCPU", "1 vCPU", "2 vCPU"]
+        memory:
+          title: Memória (MB)
+          type: string
+          default: "512"
+          enum: ["512", "1024", "2048", "4096"]
+          enumNames: ["512 MB", "1 GB", "2 GB", "4 GB"]
+        desiredCount:
+          title: Número de tasks
+          type: number
+          default: 2
+        spotPercentage:
+          title: Percentual Spot (%)
+          type: number
+          default: 70
+          description: Percentual de tasks em Spot (restante em On-Demand)
+
+    - title: Repositório
+      required:
+        - repoUrl
+      properties:
+        repoUrl:
+          title: Localização do repositório
+          type: string
+          ui:field: RepoUrlPicker
+          ui:options:
+            allowedHosts:
+              - github.com
+
+  steps:
+    - id: fetch
+      name: Gerar código Terraform
+      action: fetch:template
+      input:
+        url: ./content
+        values:
+          name: ${{ parameters.name }}
+          description: ${{ parameters.description }}
+          owner: ${{ parameters.owner }}
+          region: ${{ parameters.region }}
+          containerImage: ${{ parameters.containerImage }}
+          containerPort: ${{ parameters.containerPort }}
+          cpu: ${{ parameters.cpu }}
+          memory: ${{ parameters.memory }}
+          desiredCount: ${{ parameters.desiredCount }}
+          spotPercentage: ${{ parameters.spotPercentage }}
+
+    - id: publish
+      name: Publicar no GitHub
+      action: publish:github
+      input:
+        repoUrl: ${{ parameters.repoUrl }}
+        description: "Terraform - ECS Fargate Spot: ${{ parameters.name }}"
+        repoVisibility: public
+        defaultBranch: main
+
+    - id: register
+      name: Registrar no catálogo
+      action: catalog:register
+      input:
+        repoContentsUrl: ${{ steps.publish.output.repoContentsUrl }}
+        catalogInfoPath: /catalog-info.yaml
+
+  output:
+    links:
+      - title: Repositório
+        url: ${{ steps.publish.output.remoteUrl }}
+      - title: Abrir no catálogo
+        icon: catalog
+        entityRef: ${{ steps.register.output.entityRef }}

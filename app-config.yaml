@@ -100,6 +100,10 @@ catalog:
       target: ../../templates/aws-s3-bucket/template.yaml
       rules:
         - allow: [Template]
+    - type: file
+      target: ../../templates/aws-ecs-spot/template.yaml
+      rules:
+        - allow: [Template]
 
     # Local example template
     - type: file
