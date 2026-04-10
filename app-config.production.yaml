@@ -21,6 +21,9 @@ integrations:
     - host: github.com
       token: ${GITHUB_TOKEN}
 
+permission:
+  enabled: false
+
 catalog:
   rules:
     - allow: [Component, System, API, Resource, Location, Domain, Group, User, Template]

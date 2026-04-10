@@ -1,7 +1,7 @@
 image:
   repository: ghcr.io/jmarcelotse/app-nxt
   tag: latest
-  pullPolicy: IfNotPresent
+  pullPolicy: Always
 
 replicas: 1
 
