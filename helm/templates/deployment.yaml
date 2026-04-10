@@ -36,6 +36,11 @@ spec:
                 secretKeyRef:
                   name: {{ .Release.Name }}-postgresql
                   key: password
+            - name: GITHUB_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: backstage-github-token
+                  key: token
           readinessProbe:
             httpGet:
               path: /.backstage/health/v1/readiness

@@ -16,6 +16,11 @@ auth:
   providers:
     guest: {}
 
+integrations:
+  github:
+    - host: github.com
+      token: ${GITHUB_TOKEN}
+
 catalog:
   rules:
     - allow: [Component, System, API, Resource, Location, Domain, Group, User, Template]
