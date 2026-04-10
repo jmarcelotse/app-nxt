@@ -65,7 +65,6 @@ spec:
       name: Publicar no GitHub
       action: publish:github
       input:
-        allowedHosts: ['github.com']
         repoUrl: ${{ parameters.repoUrl }}
         description: ${{ parameters.description }}
         repoVisibility: public
