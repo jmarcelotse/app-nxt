@@ -35,3 +35,7 @@ catalog:
       target: ./templates/nodejs-service/template.yaml
       rules:
         - allow: [Template]
+    - type: file
+      target: ./templates/aws-s3-bucket/template.yaml
+      rules:
+        - allow: [Template]
