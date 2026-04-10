@@ -1,0 +1,87 @@
+apiVersion: scaffolder.backstage.io/v1beta3
+kind: Template
+metadata:
+  name: nodejs-service
+  title: Node.js Service
+  description: Cria um serviço Node.js com Express, Dockerfile e CI/CD
+  tags:
+    - nodejs
+    - typescript
+    - recommended
+spec:
+  owner: team-platform
+  type: service
+
+  parameters:
+    - title: Informações do Serviço
+      required:
+        - name
+        - description
+        - owner
+      properties:
+        name:
+          title: Nome do serviço
+          type: string
+          description: Nome único do serviço (ex. payments-api)
+          pattern: '^[a-z0-9-]+$'
+          ui:autofocus: true
+        description:
+          title: Descrição
+          type: string
+          description: Breve descrição do serviço
+        owner:
+          title: Owner
+          type: string
+          description: Time responsável
+          ui:field: OwnerPicker
+          ui:options:
+            catalogFilter:
+              kind: Group
+
+    - title: Repositório
+      required:
+        - repoUrl
+      properties:
+        repoUrl:
+          title: Localização do repositório
+          type: string
+          ui:field: RepoUrlPicker
+          ui:options:
+            allowedHosts:
+              - github.com
+
+  steps:
+    - id: fetch
+      name: Gerar código
+      action: fetch:template
+      input:
+        url: ./content
+        values:
+          name: ${{ parameters.name }}
+          description: ${{ parameters.description }}
+          owner: ${{ parameters.owner }}
+
+    - id: publish
+      name: Publicar no GitHub
+      action: publish:github
+      input:
+        allowedHosts: ['github.com']
+        repoUrl: ${{ parameters.repoUrl }}
+        description: ${{ parameters.description }}
+        repoVisibility: public
+        defaultBranch: main
+
+    - id: register
+      name: Registrar no catálogo
+      action: catalog:register
+      input:
+        repoContentsUrl: ${{ steps.publish.output.repoContentsUrl }}
+        catalogInfoPath: /catalog-info.yaml
+
+  output:
+    links:
+      - title: Repositório
+        url: ${{ steps.publish.output.remoteUrl }}
+      - title: Abrir no catálogo
+        icon: catalog
+        entityRef: ${{ steps.register.output.entityRef }}

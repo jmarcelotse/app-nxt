@@ -22,3 +22,7 @@ catalog:
   locations:
     - type: file
       target: ./catalog-entities/all.yaml
+    - type: file
+      target: ./templates/nodejs-service/template.yaml
+      rules:
+        - allow: [Template]

@@ -91,6 +91,12 @@ catalog:
     - type: file
       target: ../../catalog-entities/all.yaml
 
+    # Software templates
+    - type: file
+      target: ../../templates/nodejs-service/template.yaml
+      rules:
+        - allow: [Template]
+
     # Local example template
     - type: file
       target: ../../examples/template/template.yaml
