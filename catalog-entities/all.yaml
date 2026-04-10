@@ -1,0 +1,461 @@
+---
+apiVersion: backstage.io/v1alpha1
+kind: Domain
+metadata:
+  name: engineering
+  description: Domínio de engenharia
+spec:
+  owner: team-platform
+---
+apiVersion: backstage.io/v1alpha1
+kind: Domain
+metadata:
+  name: data
+  description: Domínio de dados e analytics
+spec:
+  owner: team-data
+---
+apiVersion: backstage.io/v1alpha1
+kind: System
+metadata:
+  name: ecommerce
+  description: Sistema de e-commerce
+spec:
+  owner: team-platform
+  domain: engineering
+---
+apiVersion: backstage.io/v1alpha1
+kind: System
+metadata:
+  name: data-platform
+  description: Plataforma de dados e pipelines
+spec:
+  owner: team-data
+  domain: data
+---
+apiVersion: backstage.io/v1alpha1
+kind: Group
+metadata:
+  name: team-platform
+  description: Time de plataforma
+spec:
+  type: team
+  children: []
+---
+apiVersion: backstage.io/v1alpha1
+kind: Group
+metadata:
+  name: team-data
+  description: Time de dados
+spec:
+  type: team
+  children: []
+---
+apiVersion: backstage.io/v1alpha1
+kind: Group
+metadata:
+  name: team-frontend
+  description: Time de frontend
+spec:
+  type: team
+  children: []
+---
+apiVersion: backstage.io/v1alpha1
+kind: User
+metadata:
+  name: guest
+spec:
+  memberOf:
+    - team-platform
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: api-gateway
+  description: API Gateway principal - roteamento e rate limiting
+  tags:
+    - go
+    - gateway
+    - grpc
+spec:
+  type: service
+  lifecycle: production
+  owner: team-platform
+  system: ecommerce
+  providesApis:
+    - gateway-rest-api
+  dependsOn:
+    - component:orders-service
+    - component:payments-service
+    - component:inventory-service
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: orders-service
+  description: Serviço de pedidos - criação, consulta e gestão de pedidos
+  tags:
+    - java
+    - spring-boot
+    - kafka
+spec:
+  type: service
+  lifecycle: production
+  owner: team-platform
+  system: ecommerce
+  providesApis:
+    - orders-api
+  dependsOn:
+    - component:payments-service
+    - component:inventory-service
+    - resource:orders-db
+    - resource:kafka-cluster
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: payments-service
+  description: Serviço de pagamentos - processamento de transações
+  tags:
+    - nodejs
+    - typescript
+    - stripe
+spec:
+  type: service
+  lifecycle: production
+  owner: team-platform
+  system: ecommerce
+  providesApis:
+    - payments-api
+  dependsOn:
+    - resource:payments-db
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: inventory-service
+  description: Serviço de inventário - controle de estoque
+  tags:
+    - python
+    - fastapi
+    - redis
+spec:
+  type: service
+  lifecycle: production
+  owner: team-platform
+  system: ecommerce
+  providesApis:
+    - inventory-api
+  dependsOn:
+    - resource:inventory-db
+    - resource:redis-cache
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: notification-service
+  description: Serviço de notificações - email, SMS e push
+  tags:
+    - go
+    - rabbitmq
+spec:
+  type: service
+  lifecycle: production
+  owner: team-platform
+  system: ecommerce
+  dependsOn:
+    - resource:kafka-cluster
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: storefront
+  description: Frontend da loja - SPA React
+  tags:
+    - react
+    - typescript
+    - nextjs
+spec:
+  type: website
+  lifecycle: production
+  owner: team-frontend
+  system: ecommerce
+  consumesApis:
+    - gateway-rest-api
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: admin-dashboard
+  description: Painel administrativo interno
+  tags:
+    - react
+    - typescript
+    - vite
+spec:
+  type: website
+  lifecycle: production
+  owner: team-frontend
+  system: ecommerce
+  consumesApis:
+    - gateway-rest-api
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: etl-pipeline
+  description: Pipeline ETL - ingestão de dados de vendas
+  tags:
+    - python
+    - airflow
+    - spark
+spec:
+  type: service
+  lifecycle: production
+  owner: team-data
+  system: data-platform
+  dependsOn:
+    - resource:data-warehouse
+    - resource:kafka-cluster
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: analytics-api
+  description: API de analytics e relatórios
+  tags:
+    - python
+    - fastapi
+spec:
+  type: service
+  lifecycle: beta
+  owner: team-data
+  system: data-platform
+  providesApis:
+    - analytics-api
+  dependsOn:
+    - resource:data-warehouse
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: shared-ui-lib
+  description: Biblioteca de componentes UI compartilhados
+  tags:
+    - react
+    - typescript
+    - storybook
+spec:
+  type: library
+  lifecycle: production
+  owner: team-frontend
+---
+apiVersion: backstage.io/v1alpha1
+kind: API
+metadata:
+  name: gateway-rest-api
+  description: API REST do Gateway
+spec:
+  type: openapi
+  lifecycle: production
+  owner: team-platform
+  system: ecommerce
+  definition: |
+    openapi: "3.0.0"
+    info:
+      title: Gateway API
+      version: 1.0.0
+    paths:
+      /health:
+        get:
+          summary: Health check
+          responses:
+            "200":
+              description: OK
+      /orders:
+        get:
+          summary: Listar pedidos
+          responses:
+            "200":
+              description: Lista de pedidos
+        post:
+          summary: Criar pedido
+          responses:
+            "201":
+              description: Pedido criado
+      /payments:
+        post:
+          summary: Processar pagamento
+          responses:
+            "200":
+              description: Pagamento processado
+      /inventory:
+        get:
+          summary: Consultar estoque
+          responses:
+            "200":
+              description: Dados de estoque
+---
+apiVersion: backstage.io/v1alpha1
+kind: API
+metadata:
+  name: orders-api
+  description: API interna de pedidos
+spec:
+  type: openapi
+  lifecycle: production
+  owner: team-platform
+  system: ecommerce
+  definition: |
+    openapi: "3.0.0"
+    info:
+      title: Orders API
+      version: 1.0.0
+    paths:
+      /orders:
+        get:
+          summary: Listar pedidos
+          responses:
+            "200":
+              description: OK
+---
+apiVersion: backstage.io/v1alpha1
+kind: API
+metadata:
+  name: payments-api
+  description: API interna de pagamentos
+spec:
+  type: openapi
+  lifecycle: production
+  owner: team-platform
+  system: ecommerce
+  definition: |
+    openapi: "3.0.0"
+    info:
+      title: Payments API
+      version: 1.0.0
+    paths:
+      /payments:
+        post:
+          summary: Processar pagamento
+          responses:
+            "200":
+              description: OK
+---
+apiVersion: backstage.io/v1alpha1
+kind: API
+metadata:
+  name: inventory-api
+  description: API interna de inventário
+spec:
+  type: openapi
+  lifecycle: production
+  owner: team-platform
+  system: ecommerce
+  definition: |
+    openapi: "3.0.0"
+    info:
+      title: Inventory API
+      version: 1.0.0
+    paths:
+      /inventory:
+        get:
+          summary: Consultar estoque
+          responses:
+            "200":
+              description: OK
+---
+apiVersion: backstage.io/v1alpha1
+kind: API
+metadata:
+  name: analytics-api
+  description: API de analytics e relatórios
+spec:
+  type: openapi
+  lifecycle: beta
+  owner: team-data
+  system: data-platform
+  definition: |
+    openapi: "3.0.0"
+    info:
+      title: Analytics API
+      version: 0.1.0
+    paths:
+      /reports/sales:
+        get:
+          summary: Relatório de vendas
+          responses:
+            "200":
+              description: OK
+---
+apiVersion: backstage.io/v1alpha1
+kind: Resource
+metadata:
+  name: orders-db
+  description: Banco de dados de pedidos (PostgreSQL)
+  tags:
+    - postgresql
+spec:
+  type: database
+  owner: team-platform
+  system: ecommerce
+---
+apiVersion: backstage.io/v1alpha1
+kind: Resource
+metadata:
+  name: payments-db
+  description: Banco de dados de pagamentos (PostgreSQL)
+  tags:
+    - postgresql
+spec:
+  type: database
+  owner: team-platform
+  system: ecommerce
+---
+apiVersion: backstage.io/v1alpha1
+kind: Resource
+metadata:
+  name: inventory-db
+  description: Banco de dados de inventário (MongoDB)
+  tags:
+    - mongodb
+spec:
+  type: database
+  owner: team-platform
+  system: ecommerce
+---
+apiVersion: backstage.io/v1alpha1
+kind: Resource
+metadata:
+  name: redis-cache
+  description: Cache Redis para inventário
+  tags:
+    - redis
+spec:
+  type: cache
+  owner: team-platform
+  system: ecommerce
+---
+apiVersion: backstage.io/v1alpha1
+kind: Resource
+metadata:
+  name: kafka-cluster
+  description: Cluster Kafka para mensageria
+  tags:
+    - kafka
+spec:
+  type: message-broker
+  owner: team-platform
+  system: ecommerce
+---
+apiVersion: backstage.io/v1alpha1
+kind: Resource
+metadata:
+  name: data-warehouse
+  description: Data Warehouse (BigQuery/Redshift)
+  tags:
+    - bigquery
+spec:
+  type: database
+  owner: team-data
+  system: data-platform
