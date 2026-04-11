@@ -3,6 +3,8 @@ name: Terraform Apply
 on:
   push:
     branches: [main]
+    paths-ignore:
+      - '.github/workflows/destroy.yaml'
 
 permissions:
   id-token: write
