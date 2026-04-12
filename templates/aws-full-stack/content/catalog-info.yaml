@@ -1,0 +1,18 @@
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: ${{ values.name }}
+  description: ${{ values.description }}
+  annotations:
+    github.com/project-slug: ${{ values.destination.owner + "/" + values.destination.repo }}
+  tags:
+    - aws
+    - ec2
+    - rds
+    - s3
+    - cloudflare
+    - terraform
+spec:
+  type: service
+  lifecycle: production
+  owner: ${{ values.owner }}

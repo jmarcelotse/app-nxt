@@ -1,0 +1,207 @@
+apiVersion: scaffolder.backstage.io/v1beta3
+kind: Template
+metadata:
+  name: aws-full-stack
+  title: AWS Full Stack (EC2 + ALB + RDS + S3 + Cloudflare)
+  description: Cria infraestrutura completa com EC2 cluster, ALB, RDS, S3 e DNS Cloudflare
+  tags:
+    - aws
+    - ec2
+    - rds
+    - s3
+    - cloudflare
+    - terraform
+spec:
+  owner: team-platform
+  type: service
+
+  parameters:
+    - title: Informações do Projeto
+      required:
+        - name
+        - description
+        - owner
+        - region
+      properties:
+        name:
+          title: Nome do projeto
+          type: string
+          pattern: '^[a-z0-9-]+$'
+          ui:autofocus: true
+        description:
+          title: Descrição
+          type: string
+        owner:
+          title: Owner
+          type: string
+          ui:field: OwnerPicker
+          ui:options:
+            catalogFilter:
+              kind: Group
+        region:
+          title: Região AWS
+          type: string
+          default: us-east-1
+          enum:
+            - us-east-1
+            - us-east-2
+            - us-west-2
+            - sa-east-1
+          enumNames:
+            - US East (N. Virginia)
+            - US East (Ohio)
+            - US West (Oregon)
+            - South America (São Paulo)
+        environment:
+          title: Ambiente
+          type: string
+          default: staging
+          enum:
+            - staging
+            - production
+
+    - title: EC2 Cluster
+      required:
+        - instanceType
+        - instanceCount
+      properties:
+        instanceType:
+          title: Tipo de instância
+          type: string
+          default: t3.medium
+          enum:
+            - t3.micro
+            - t3.small
+            - t3.medium
+            - t3.large
+            - t3.xlarge
+          enumNames:
+            - t3.micro (2 vCPU, 1 GB)
+            - t3.small (2 vCPU, 2 GB)
+            - t3.medium (2 vCPU, 4 GB)
+            - t3.large (2 vCPU, 8 GB)
+            - t3.xlarge (4 vCPU, 16 GB)
+        instanceCount:
+          title: Número de instâncias
+          type: number
+          default: 2
+        useSpot:
+          title: Usar Spot Instances
+          type: boolean
+          default: true
+
+    - title: Banco de Dados (RDS)
+      required:
+        - dbEngine
+        - dbInstanceClass
+      properties:
+        dbEngine:
+          title: Engine
+          type: string
+          default: postgres
+          enum:
+            - postgres
+            - mysql
+          enumNames:
+            - PostgreSQL 16
+            - MySQL 8.0
+        dbInstanceClass:
+          title: Classe da instância
+          type: string
+          default: db.t3.micro
+          enum:
+            - db.t3.micro
+            - db.t3.small
+            - db.t3.medium
+            - db.t3.large
+          enumNames:
+            - db.t3.micro (2 vCPU, 1 GB)
+            - db.t3.small (2 vCPU, 2 GB)
+            - db.t3.medium (2 vCPU, 4 GB)
+            - db.t3.large (2 vCPU, 8 GB)
+        dbStorage:
+          title: Storage (GB)
+          type: number
+          default: 20
+        dbMultiAz:
+          title: Multi-AZ
+          type: boolean
+          default: false
+
+    - title: DNS Cloudflare
+      required:
+        - domain
+        - subdomain
+        - cloudflareZoneId
+      properties:
+        domain:
+          title: Domínio
+          type: string
+          description: "Ex: example.com"
+        subdomain:
+          title: Subdomínio
+          type: string
+          description: "Ex: app (ficará app.example.com)"
+        cloudflareZoneId:
+          title: Cloudflare Zone ID
+          type: string
+          description: Encontre em Cloudflare Dashboard > seu domínio > Overview
+
+    - title: Repositório
+      required:
+        - repoUrl
+      properties:
+        repoUrl:
+          title: Localização do repositório
+          type: string
+          ui:field: RepoUrlPicker
+          ui:options:
+            allowedHosts:
+              - github.com
+
+  steps:
+    - id: fetch
+      name: Gerar código Terraform
+      action: fetch:template
+      input:
+        url: ./content
+        values:
+          name: ${{ parameters.name }}
+          description: ${{ parameters.description }}
+          owner: ${{ parameters.owner }}
+          region: ${{ parameters.region }}
+          environment: ${{ parameters.environment }}
+          instanceType: ${{ parameters.instanceType }}
+          instanceCount: ${{ parameters.instanceCount }}
+          useSpot: ${{ parameters.useSpot }}
+          dbEngine: ${{ parameters.dbEngine }}
+          dbInstanceClass: ${{ parameters.dbInstanceClass }}
+          dbStorage: ${{ parameters.dbStorage }}
+          dbMultiAz: ${{ parameters.dbMultiAz }}
+          domain: ${{ parameters.domain }}
+          subdomain: ${{ parameters.subdomain }}
+          cloudflareZoneId: ${{ parameters.cloudflareZoneId }}
+
+    - id: publish
+      name: Publicar no GitHub
+      action: publish:github
+      input:
+        repoUrl: ${{ parameters.repoUrl }}
+        description: "Terraform - Full Stack: ${{ parameters.name }}"
+        repoVisibility: public
+        defaultBranch: main
+
+    - id: register
+      name: Registrar no catálogo
+      action: catalog:register
+      input:
+        repoContentsUrl: ${{ steps.publish.output.repoContentsUrl }}
+        catalogInfoPath: /catalog-info.yaml
+
+  output:
+    links:
+      - title: Repositório
+        url: ${{ steps.publish.output.remoteUrl }}
+      - title: Abrir no catálogo
+        icon: catalog
+        entityRef: ${{ steps.register.output.entityRef }}

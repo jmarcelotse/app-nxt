@@ -43,3 +43,7 @@ catalog:
       target: ./templates/aws-ecs-spot/template.yaml
       rules:
         - allow: [Template]
+    - type: file
+      target: ./templates/aws-full-stack/template.yaml
+      rules:
+        - allow: [Template]
